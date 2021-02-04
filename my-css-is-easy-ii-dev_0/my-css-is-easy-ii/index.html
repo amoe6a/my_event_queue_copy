@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" 
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" href="./style.css">
+    </head>
+    <body>
+            <div class="container" style="min-height: 90vh; max-width: 940px; padding: none;">
+                <div class="row justify-content-center">
+                    <div class="col" style="max-width: 640px; min-height: 90vh; padding-left: 40px; background: white; box-shadow: 0 0 30px rgba(71, 51, 31, 0.05);">
+                        <div id = "headerRow" class="row" style="background-color: #f0f7fa; color: #85a0ad;
+                        font: 14px 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Verdana, sans-serif; margin: 0px -38px 0 -38px; padding: 10px 38px;">
+                            <div class="col-sm">
+                                ←&nbsp;<a href="#">Previous<span>&nbsp;Chapter</span></a>
+                            </div>
+                            
+                            <div class="col-sm">
+                                ≡&nbsp;<span><a href="#">About&nbsp;The&nbsp;Book</a></span>
+                            </div>
+                            
+                            <div class="col-sm">
+                                §&nbsp;<span><a href="#">Contents</a></span>
+                            </div>
+                            
+                            <div class="col-sm">
+                                <span><a href="#">Next&nbsp;Chapter</a></span>&nbsp;→
+                            </div>
+                        </div>
+                        <h1>Event Queue</h1>
+                        <h1 class="book">
+                            <a href="#">
+                                Game programming patterns<span>/<a href="#">Decoupling Patterns</a></span>
+                            </a>
+                        </h1>
+                        <h2>Intent</h2>
+                        <p style="font-style: italic">Decouple when a message or event is sent from when it is processed.</p>
+                        <h2>Motivation</h2>
+                        <p id="p1">
+                            Unless you live under one of the few rocks that still lack Internet access, you’ve probably 
+                            already heard of an “event queue”. If not, maybe “message queue”, or “event loop”,
+                             or “message pump” rings a bell. To refresh your memory, let’s walk through a couple of common manifestations of the pattern.
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                For most of the chapter, I use “event” and “message” interchangeably.
+                                 Where the distinction matters, I’ll make it obvious.
+                            </p>
+                        </div>
+                        <h3 id="p2"><a href="#">GUI event loops</a></h3>
+                        <p>
+                            If you&#8217;ve ever done any <span name="event-driven">user interface</span>
+                            programming, then you&#8217;re well acquainted with <em>events</em>. Every time the user
+                            interacts with your program&#8202;&mdash;&#8202;clicks a button, pulls down a menu, or presses a
+                            key&#8202;&mdash;&#8202;the operating system generates an event. It throws this object at your
+                            app, and your job is to grab it and hook it up to some interesting behavior.
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                <p>This application style is so common, it&#8217;s considered a paradigm: <a
+                                href="http://en.wikipedia.org/wiki/Event-driven_programming"><em>event-driven
+                                programming</em></a>.</p>
+                            </p>
+                        </div>
+                        <p>
+                            In order to receive these missives, somewhere deep in the bowels of your code is
+                            an <em>event loop</em>. It looks roughly like this:
+                        </p>
+                        <pre><code><code style="color: #1481b8">while</code> (running)
+{
+    Event event = getNextEvent();
+    <code style="color: #999">// Handle event...</code>
+}
+                        </code></pre>
+                        <p>
+                            The call to <code>getNextEvent()</code> pulls a bit of unprocessed user input into your
+                            app. You route it to an event handler and, like magic, your application comes to
+                            life. The interesting part is that the application <em id="p3">pulls</em> in the event when
+                            <em>it</em> wants it. The operating system doesn&#8217;t just immediately <span
+                            name="interrupt">jump</span> to some code in your app when the user pokes a
+                            peripheral.
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                In contrast, <em>interrupts</em> from the operating system <em>do</em> work like that. When an
+                                interrupt happens, the OS stops whatever your app was doing and forces it to
+                                jump to an interrupt handler. This abruptness is why interrupts are so hard to
+                                work with.
+                            </p>
+                        </div>
+                        <p>
+                            That means when user input comes in, it needs to go somewhere so that the
+                            operating system doesn’t lose it between when the device driver reported the
+                            input and when your app gets around to calling <code>getNextEvent()</code>. That
+                            “somewhere” is a <em>queue</em>.
+                        </p>
+                        <p>
+                            <img src="images/event-queue-loop.png" alt="An event queue. The operating system enqueues Shift, Down, Up, and Click events, and the getNextEvent() function dequeues them.">
+                        </p>
+                        <p>
+                            When user input comes in, the OS adds it to a queue of unprocessed events. When
+                            you call <code>getNextEvent()</code>, that pulls the oldest event off the queue and hands it
+                            to your application.
+                        </p>
+                        <h3 id="p4"><a href="#">Central event bus</a></h3>
+                        <p>
+                            Most <span name="game-loop">games</span> aren’t event-driven like this, but it
+                            is common for a game to have its own event queue as the backbone of its nervous
+                            system. You’ll often hear “central”, “global”, or “main” used to describe it.
+                            It’s used for high level communication between game systems that want to stay
+                            <span id="p5">decoupled</span>.
+                        </p>
+                        <div class="aside2">
+                            <p>If you want to know <em>why</em> they aren’t event-driven, crack open the <a href="#">Game Loop</a> chapter.</p>
+                        </div>
+                        <p>
+                            Say your game has a <span name="tutorial">tutorial</span> system to display help
+                            boxes after specific in-game events. For example, the first time the player
+                            vanquishes a foul beastie, you want to show a little balloon that says, “Press X
+                            to grab the loot!”
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                Tutorial systems are a pain to implement gracefully, and most players will spend
+                                only a fraction of their time using in-game help, so it feels like they aren’t
+                                worth the effort. But that fraction where they <em>are</em> using the tutorial can be
+                                invaluable for easing the player into your game.
+                            </p>
+                        </div>
+                        <p>
+                            Your gameplay and combat code are likely complex enough as it is. The last thing
+                            you want to do is stuff a bunch of checks for triggering tutorials in there.
+                            Instead, you could have a central event queue. Any game system can send to it,
+                            so the combat code can add an “enemy died” event every time you slay a foe.
+                        </p>
+                        <p id="p6">
+                            Likewise, any game system can <em>receive</em> events
+                            from the queue. The tutorial engine registers itself with the queue and
+                            indicates it wants to receive “enemy died” events. This way, knowledge of an
+                            enemy dying makes its way from the combat system over to the tutorial engine
+                            without the two being directly aware of each other.
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                This model where you have a shared space that entities can post information to
+                                and get notified by is similar to <a href="http://en.wikipedia.org/wiki/Blackboard_system">blackboard systems</a> in
+                                the AI field.
+                            </p>
+                        </div>
+                        <p>
+                            <img src="images/event-queue-central.png" alt="A central event queue is read from and written to by the Combat and Tutorial code.">
+                        </p>
+                        <p>
+                            I thought about using this as the example for the rest of the chapter, but I’m
+                            not generally a fan of big global systems. Event queues don’t have to be for
+                            communicating across the entire game engine. They can be just as useful within a single class or domain.
+                        </p>
+                        <h3><a href="#say-what" name="say-what">Say what?</a></h3>
+                        <p>
+                            So, instead, let’s add sound to our game. Humans are mainly visual animals, but
+                            hearing is deeply connected to our emotions and our sense of physical space. The
+                            right simulated echo can make a black screen feel like an enormous cavern, and a
+                            well-timed violin adagio can make your heartstrings hum in sympathetic
+                            resonance.
+                        </p>
+                        <p>
+                            <span id = "p7">To</span> get our game wound for sound, we’ll start with the simplest possible approach
+                            and see how it goes. We’ll add a little “audio
+                            engine” that has an API for playing a sound given an identifier and a
+                            volume:
+                        </p>
+                        <div class="aside2">
+                            <p>
+                                While I almost always shy away from the <a href="#" class="gof-pattern">Singleton</a> pattern, this is one of the places where it
+                                may fit since the machine likely only has one set of speakers. I’m taking a
+                                simpler approach and just making the method static.
+                            </p>
+                        </div>
+                        <pre><code><code style="color: #1481b8">class</code>Audio
+{
+<code style="color: #1481b8">public:</code>
+  <code style="color: #1481b8">static</code> <code style="color: #1481b8">void</code> playSound(SoundId id, <code style="color: #09a;">int</code> volume);
+};
+                        </code></pre>
+                        <p>
+                            It’s responsible for loading the appropriate sound resource, finding an
+                            available channel to play it on, and starting it up. This chapter isn’t about
+                            some platform’s real audio API, so I’ll conjure one up that we can presume is
+                            implemented elsewhere. Using it, we write our method like so:
+                        </p>
+
+                    <div id = "headerRow" class="row" style="background-color: #f0f7fa; color: #85a0ad;
+                    font: 14px 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Verdana, sans-serif; margin: 0px -38px 0 -38px; padding: 10px 38px;">
+                        <div class="col-sm">
+                            ←&nbsp;<a href="#">Previous<span>&nbsp;Chapter</span></a>
+                        </div>
+                        
+                        <div class="col-sm">
+                            ≡&nbsp;<span><a href="#">About&nbsp;The&nbsp;Book</a></span>
+                        </div>
+                        
+                        <div class="col-sm">
+                            §&nbsp;<span><a href="#">Contents</a></span>
+                        </div>
+                        
+                        <div class="col-sm">
+                            <span><a href="#">Next&nbsp;Chapter</a></span>&nbsp;→
+                        </div>
+                    </div>
+                    </div>
+                    <div class="col-3">
+                        <div id="as1" class="aside1" style="position: relative;">
+                            <p>
+                                For most of the chapter, I use “event” and “message” interchangeably. 
+                                Where the distinction matters, I’ll make it obvious.
+                            </p>
+                        </div>
+                        <div id="as2" class="aside1" style="position: relative;">
+                            <p>
+                                This application style is so common, it&#8217;s considered a paradigm: <a
+                                href="http://en.wikipedia.org/wiki/Event-driven_programming"><em>event-driven
+                                programming</em></a>.
+                            </p>
+                        </div>
+                        <div id="as3" class="aside1" style="position: relative;">
+                            <p>
+                                In contrast, <em>interrupts</em> from the operating system <em>do</em> work like that. When an
+                                interrupt happens, the OS stops whatever your app was doing and forces it to
+                                jump to an interrupt handler. This abruptness is why interrupts are so hard to
+                                work with.
+                            </p>
+                        </div>
+                        <div id="as4" class="aside1" style="position: relative; display: block;">
+                                <p>If you want to know <em>why</em> they aren’t event-driven, crack open the <a href="#">Game Loop</a> chapter.</p>
+                        </div>
+                        <div id="as5" class="aside1" style="position: relative;">
+                            <p>
+                                Tutorial systems are a pain to implement gracefully, and most players will spend
+                                only a fraction of their time using in-game help, so it feels like they aren’t
+                                worth the effort. But that fraction where they <em>are</em> using the tutorial can be
+                                invaluable for easing the player into your game.
+                            </p>
+                        </div>
+                        <div id="as6" class="aside1" style="position: relative;">
+                            <p>
+                                This model where you have a shared space that entities can post information to
+                                and get notified by is similar to <a href="http://en.wikipedia.org/wiki/Blackboard_system">blackboard systems</a> in
+                                the AI field.
+                            </p>
+                        </div>
+                        <div id="as7" class="aside1" style="position: relative;">
+                            <p>
+                                While I almost always shy away from the <a href="singleton.html" class="gof-pattern">Singleton</a> pattern, this is one of the places where it
+                                may fit since the machine likely only has one set of speakers. I’m taking a
+                                simpler approach and just making the method static.
+                            </p>
+                        </div>
+                        <script>
+                            function place1() {
+                                off = 0
+                                k = 0
+                                k = p1.offsetTop - 15
+                                as1.style.top = k + 15 + "px"
+                                off += as1.offsetHeight
+                        
+                                k = p2.offsetTop - 15 - off
+                                as2.style.top = k + 15 + "px"
+                                off += as2.offsetHeight
+                            
+                                k = p3.offsetTop - 15 - off
+                                as3.style.top = k + "px"
+                                off += as3.offsetHeight
+                            
+                                k = p4.offsetTop - 15 - off
+                                as4.style.top = k + "px"
+                                off += as4.offsetHeight
+
+                                k = p5.offsetTop - 15 - off
+                                as5.style.top = k - 15 + "px"
+                                off += as5.offsetHeight
+
+                                k = p6.offsetTop - 15 - off
+                                as6.style.top = k - 75 + "px"
+                                off += as6.offsetHeight
+
+                                k = p7.offsetTop - 15 - off
+                                as7.style.top = k - 75 + "px"
+                                off += as7.offsetHeight
+                            }
+                            setInterval( place1, 500);
+                            
+                        </script>
+                    </div>
+                </div>
+            </div>
+            <div class="container" style="color: grey; height: 10vh; width: 60%; text-align: center;">
+                <div class="row" style="height: 10vh; color: #aaa; font: 14px 'Source Sans Pro', 'Lucida Grande', 'Lucida Sans Unicode', Verdana, sans-serif;">
+                    <div class="col align-self-center">
+                        © 2009-2014 Robert Nystrom
+                    </div>
+                </div>
+            </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+        
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    </body>
+</html>
